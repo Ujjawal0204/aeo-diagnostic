@@ -21,6 +21,8 @@ export interface DiagnosticReport {
   overallScore: number;
   topEngine: string | null;
   summary: string;
+  headline: string;
+  lede: string;
 }
 
 function extractSentenceWithBrand(text: string, brand: string): string | null {
@@ -94,15 +96,49 @@ export function analyzeResponse(rawResponse: string, brand: string, modelKey: st
   return { modelKey, modelLabel, company, color, rawResponse, mentioned, mentionPosition, mentionContext, competitors, sentiment, score, positionLabel };
 }
 
+function generateHeadline(brand: string, results: AnalysisResult[]): string {
+  const mentioned = results.filter(r => r.mentioned);
+  const absent = results.filter(r => !r.mentioned);
+  if (mentioned.length === 0) return `${brand} is invisible to the artificial mind.`;
+  if (mentioned.length === 3) {
+    const top = results.reduce((a, b) => a.score > b.score ? a : b);
+    return `${brand} is seen — but ${top.modelLabel} sees it best.`;
+  }
+  if (mentioned.length === 2) {
+    return `Two engines remember ${brand}. ${absent[0].modelLabel} forgot.`;
+  }
+  return `Only ${mentioned[0].modelLabel} remembers ${brand}.`;
+}
+
+function generateLede(brand: string, query: string, results: AnalysisResult[]): string {
+  const mentioned = results.filter(r => r.mentioned);
+  const absent = results.filter(r => !r.mentioned);
+  const queryClean = query.replace(/^best\s+/i, "the best ").replace(/\?$/, "");
+
+  if (mentioned.length === 0) {
+    return `Asked for ${queryClean}, three of today's most-used AI systems answered with confidence — and none mentioned ${brand}. The brand's absence, across models trained by three different companies, suggests a gap not in product, but in narrative.`;
+  }
+  if (mentioned.length === 3) {
+    return `Asked for ${queryClean}, all three AIs return ${brand} by name. Position and framing differ — and that's where the work begins.`;
+  }
+  const presentList = mentioned.map(r => r.modelLabel).join(" and ");
+  const absentList = absent.map(r => r.modelLabel).join(" and ");
+  return `Asked for ${queryClean}, ${presentList} mentioned ${brand}. ${absentList} did not. Three systems, three different memories of who matters in this category.`;
+}
+
 export function buildReport(query: string, brand: string, results: AnalysisResult[]): DiagnosticReport {
   const overallScore = Math.round(results.reduce((sum, r) => sum + r.score, 0) / results.length);
   const topResult = results.reduce((best, r) => r.score > best.score ? r : best);
   const topEngine = topResult.score > 0 ? topResult.modelLabel : null;
   const mentionedCount = results.filter((r) => r.mentioned).length;
   let summary = "";
-  if (mentionedCount === 0) summary = `"${brand}" is invisible across all AI engines for this query. Immediate content and authority-building is needed.`;
-  else if (mentionedCount === 1) summary = `"${brand}" appears on only 1 of 3 AI engines. Visibility is narrow — you're missing 2/3 of AI-driven traffic.`;
-  else if (mentionedCount === 2) summary = `"${brand}" is mentioned by 2 of 3 AI engines. Solid start, but there's a gap to close on ${results.find((r) => !r.mentioned)?.modelLabel}.`;
-  else summary = `"${brand}" is visible across all 3 AI engines. Focus on improving your position and sentiment to dominate this query.`;
-  return { query, brand, timestamp: new Date().toISOString(), results, overallScore, topEngine, summary };
+  if (mentionedCount === 0) summary = `${brand} is invisible across all AI engines for this query. Immediate content and authority-building is needed.`;
+  else if (mentionedCount === 1) summary = `${brand} appears on only 1 of 3 AI engines. Visibility is narrow — you're missing two-thirds of AI-driven traffic.`;
+  else if (mentionedCount === 2) summary = `${brand} is mentioned by 2 of 3 AI engines. Solid start, but there's a gap to close.`;
+  else summary = `${brand} is visible across all 3 AI engines. Focus on improving position and sentiment to dominate this query.`;
+
+  const headline = generateHeadline(brand, results);
+  const lede = generateLede(brand, query, results);
+
+  return { query, brand, timestamp: new Date().toISOString(), results, overallScore, topEngine, summary, headline, lede };
 }

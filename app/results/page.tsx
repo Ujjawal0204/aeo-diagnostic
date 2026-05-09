@@ -4,100 +4,69 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DiagnosticReport, AnalysisResult } from "@/lib/analyzer";
 
-function ScoreRing({ score, color }: { score: number; color: string }) {
-  const r = 28;
-  const circ = 2 * Math.PI * r;
-  const offset = circ - (score / 100) * circ;
+function AnimatedNumber({ value, duration = 1400 }: { value: number; duration?: number }) {
+  const [display, setDisplay] = useState(0);
+  useEffect(() => {
+    const start = performance.now();
+    const animate = (now: number) => {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplay(Math.round(value * eased));
+      if (progress < 1) requestAnimationFrame(animate);
+    };
+    requestAnimationFrame(animate);
+  }, [value, duration]);
+  return <span className="tabular">{display}</span>;
+}
+
+function ScoreNumber({ score, mentioned, color }: { score: number; mentioned: boolean; color: string }) {
+  if (!mentioned) {
+    return <div className="font-serif" style={{ fontSize: 56, fontWeight: 300, lineHeight: 1, color: "var(--ink-3)", letterSpacing: "-0.04em" }}>—</div>;
+  }
   return (
-    <svg width="72" height="72" viewBox="0 0 72 72">
-      <circle cx="36" cy="36" r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="5" />
-      <circle cx="36" cy="36" r={r} fill="none" stroke={color} strokeWidth="5" strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" transform="rotate(-90 36 36)" style={{ transition: "stroke-dashoffset 1s ease" }} />
-      <text x="36" y="40" textAnchor="middle" fill="white" fontSize="14" fontWeight="700">{score}</text>
-    </svg>
+    <div className="font-serif tabular" style={{ fontSize: 56, fontWeight: 500, lineHeight: 1, color, letterSpacing: "-0.04em" }}>
+      <AnimatedNumber value={score} />
+    </div>
   );
 }
 
-function SentimentBadge({ sentiment }: { sentiment: string }) {
-  const map: Record<string, { label: string; cls: string }> = {
-    positive: { label: "Positive ↑", cls: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
-    neutral: { label: "Neutral →", cls: "text-yellow-400 bg-yellow-500/10 border-yellow-500/20" },
-    negative: { label: "Negative ↓", cls: "text-red-400 bg-red-500/10 border-red-500/20" },
-    not_mentioned: { label: "Not Mentioned", cls: "text-white/30 bg-white/5 border-white/10" },
-  };
-  const { label, cls } = map[sentiment] || map.not_mentioned;
-  return <span className={`text-[10px] px-2 py-0.5 rounded-full border font-medium ${cls}`}>{label}</span>;
+function StatusLine({ result }: { result: AnalysisResult }) {
+  if (!result.mentioned) {
+    return <span className="font-serif italic" style={{ fontSize: 14, color: "var(--accent)" }}>Not mentioned</span>;
+  }
+  const sentimentColor = result.sentiment === "positive" ? "var(--positive)" : result.sentiment === "negative" ? "var(--accent)" : "var(--warning)";
+  const positionLabel = result.positionLabel === "top" ? "Mentioned · early" : result.positionLabel === "middle" ? "Mentioned · mid-response" : "Mentioned · buried";
+  return <span className="font-serif italic" style={{ fontSize: 14, color: sentimentColor }}>{positionLabel}</span>;
 }
 
-function ModelCard({ result }: { result: AnalysisResult }) {
-  const [expanded, setExpanded] = useState(false);
+function ModelColumn({ result, index }: { result: AnalysisResult; index: number }) {
+  const color = result.score >= 70 ? "var(--positive)" : result.score >= 40 ? "var(--warning)" : "var(--accent)";
   return (
-    <div className="rounded-2xl border bg-white/3 overflow-hidden transition-all" style={{ borderColor: result.mentioned ? `${result.color}30` : "rgba(255,255,255,0.06)" }}>
-      <div className="h-1 w-full" style={{ backgroundColor: result.mentioned ? result.color : "rgba(255,255,255,0.06)" }} />
-      <div className="p-5">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <p className="font-semibold text-white/90 text-sm">{result.modelLabel}</p>
-            <p className="text-white/30 text-xs">{result.company}</p>
-          </div>
-          <ScoreRing score={result.score} color={result.mentioned ? result.color : "rgba(255,255,255,0.15)"} />
-        </div>
-        <div className="flex items-center gap-2 mb-3">
-          <span className={`w-2 h-2 rounded-full ${result.mentioned ? "bg-emerald-400" : "bg-white/20"}`} />
-          <span className="text-xs text-white/50">
-            {result.mentioned ? `Mentioned · ${result.positionLabel === "top" ? "Early in response" : result.positionLabel === "middle" ? "Mid-response" : "Late in response"}` : "Not mentioned"}
-          </span>
-        </div>
-        <SentimentBadge sentiment={result.sentiment} />
-        {result.mentionContext && (
-          <div className="mt-3 px-3 py-2 rounded-lg bg-white/4 border border-white/8">
-            <p className="text-white/50 text-xs leading-relaxed italic">"{result.mentionContext}"</p>
-          </div>
-        )}
-        {result.competitors.length > 0 && (
-          <div className="mt-3">
-            <p className="text-[10px] text-white/25 uppercase tracking-wider mb-1.5">Brands mentioned</p>
-            <div className="flex flex-wrap gap-1.5">
-              {result.competitors.slice(0, 4).map((c) => (
-                <span key={c} className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/40">{c}</span>
-              ))}
-            </div>
-          </div>
-        )}
-        <button onClick={() => setExpanded(!expanded)} className="mt-4 text-[10px] text-white/25 hover:text-white/50 transition-colors">
-          {expanded ? "Hide" : "Show"} full response ↓
-        </button>
-        {expanded && (
-          <div className="mt-2 p-3 rounded-lg bg-black/30 border border-white/5 max-h-40 overflow-y-auto">
-            <p className="text-white/40 text-[11px] leading-relaxed whitespace-pre-wrap">{result.rawResponse}</p>
-          </div>
-        )}
+    <div className="fade-up" style={{ animationDelay: `${400 + index * 150}ms` }}>
+      <div className="label mb-3">{result.modelLabel} · {result.company}</div>
+      <ScoreNumber score={result.score} mentioned={result.mentioned} color={color} />
+      <div className="mt-2">
+        <StatusLine result={result} />
       </div>
     </div>
   );
 }
 
-function OverallScore({ score }: { score: number }) {
-  const label = score >= 80 ? "Dominant" : score >= 60 ? "Visible" : score >= 40 ? "Partial" : score >= 20 ? "Weak" : "Invisible";
-  const color = score >= 80 ? "#10B981" : score >= 60 ? "#3B82F6" : score >= 40 ? "#F59E0B" : score >= 20 ? "#EF4444" : "#6B7280";
+function PullQuote({ text, brand }: { text: string; brand: string }) {
+  // highlight brand within the quote
+  const regex = new RegExp(`(${brand.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi");
+  const parts = text.split(regex);
   return (
-    <div className="flex flex-col items-center">
-      <div className="relative w-32 h-32">
-        <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
-          <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="8" />
-          <circle cx="60" cy="60" r="50" fill="none" stroke={color} strokeWidth="8" strokeDasharray={`${2 * Math.PI * 50}`} strokeDashoffset={`${2 * Math.PI * 50 * (1 - score / 100)}`} strokeLinecap="round" style={{ transition: "stroke-dashoffset 1.2s ease" }} />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-3xl font-bold text-white">{score}</span>
-          <span className="text-[10px] text-white/30">/100</span>
-        </div>
-      </div>
-      <span className="mt-2 text-sm font-semibold" style={{ color }}>{label}</span>
-    </div>
+    <blockquote className="font-serif italic" style={{ fontSize: 19, lineHeight: 1.55, color: "var(--ink)", borderLeft: "2px solid var(--ink)", paddingLeft: 20, fontWeight: 400 }}>
+      "{parts.map((p, i) => regex.test(p) ? <span key={i} className="highlight">{p}</span> : <span key={i}>{p}</span>)}"
+    </blockquote>
   );
 }
 
 export default function ResultsPage() {
   const [report, setReport] = useState<DiagnosticReport | null>(null);
+  const [expandedModel, setExpandedModel] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -106,71 +75,133 @@ export default function ResultsPage() {
     setReport(JSON.parse(raw));
   }, [router]);
 
-  if (!report) return <div className="min-h-screen bg-[#0A0A0F] flex items-center justify-center text-white/30 text-sm">Loading...</div>;
+  if (!report) return (
+    <div className="min-h-screen flex items-center justify-center font-mono text-xs tracking-widest" style={{ color: "var(--ink-3)" }}>
+      LOADING
+    </div>
+  );
 
-  const mentionedCount = report.results.filter((r) => r.mentioned).length;
+  const mentionedCount = report.results.filter(r => r.mentioned).length;
+  const firstQuote = report.results.find(r => r.mentionContext);
+  const date = new Date(report.timestamp).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
   return (
-    <main className="min-h-screen bg-[#0A0A0F] text-white">
-      <header className="border-b border-white/5 px-8 py-5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-7 h-7 rounded-md bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-xs font-bold">A</div>
-          <span className="font-semibold tracking-tight text-white/90">AEO Diagnostic</span>
+    <main className="min-h-screen flex flex-col">
+      {/* Masthead */}
+      <header className="w-full border-b" style={{ borderColor: "var(--rule)" }}>
+        <div className="max-w-[720px] mx-auto px-6 py-5 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-2 h-2 rounded-full" style={{ background: "var(--accent)" }} />
+            <span className="font-mono text-[11px] tracking-[0.16em] uppercase">AEO · Diagnostic</span>
+          </div>
+          <button onClick={() => router.push("/")} className="btn-ghost">
+            <span>←</span> Run another
+          </button>
         </div>
-        <button onClick={() => router.push("/")} className="text-xs text-white/30 hover:text-white/60 transition-colors border border-white/10 px-3 py-1.5 rounded-lg">← New Query</button>
       </header>
-      <div className="max-w-4xl mx-auto px-6 py-12">
-        <div className="mb-10">
-          <p className="text-xs text-white/30 uppercase tracking-widest mb-2">Query analyzed</p>
-          <h2 className="text-2xl font-bold text-white/90">"{report.query}"</h2>
-          <p className="text-white/40 mt-1">Brand: <span className="text-violet-400 font-medium">{report.brand}</span></p>
+
+      <article className="flex-1 max-w-[720px] mx-auto px-6 w-full pt-16 pb-24">
+        {/* Article meta */}
+        <div className="flex items-center gap-4 mb-6 fade-up">
+          <span className="kicker">A study in three machines</span>
+          <span className="font-mono text-[11px]" style={{ color: "var(--ink-3)" }}>·</span>
+          <span className="font-mono text-[11px] uppercase tracking-wider" style={{ color: "var(--ink-3)" }}>{date}</span>
         </div>
-        <div className="flex flex-col md:flex-row items-center gap-8 bg-white/3 border border-white/8 rounded-2xl p-6 mb-10">
-          <OverallScore score={report.overallScore} />
-          <div className="flex-1">
-            <p className="text-white/70 text-sm leading-relaxed mb-4">{report.summary}</p>
-            <div className="flex gap-6">
-              <div>
-                <p className="text-2xl font-bold text-white">{mentionedCount}<span className="text-white/30 text-base">/3</span></p>
-                <p className="text-xs text-white/30">Engines mention you</p>
-              </div>
-              {report.topEngine && (
-                <div>
-                  <p className="text-sm font-semibold text-violet-400">{report.topEngine}</p>
-                  <p className="text-xs text-white/30">Best performing engine</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="grid md:grid-cols-3 gap-4 mb-10">
-          {report.results.map((result) => (
-            <ModelCard key={result.modelKey} result={result} />
+
+        {/* Headline — dynamic */}
+        <h1 className="font-serif fade-up delay-100" style={{ fontSize: "clamp(36px, 5vw, 52px)", lineHeight: 1.08, letterSpacing: "-0.025em", fontWeight: 400, marginBottom: 20 }}>
+          {report.headline.split(report.brand).map((part, i, arr) => (
+            <span key={i}>
+              {part}
+              {i < arr.length - 1 && <em style={{ color: "var(--accent)", fontStyle: "italic", fontWeight: 500 }}>{report.brand}</em>}
+            </span>
           ))}
-        </div>
-        <div className="rounded-2xl border border-white/8 bg-white/3 p-6">
-          <h3 className="text-sm font-semibold text-white/70 mb-4 uppercase tracking-wider">What to do next</h3>
-          <div className="space-y-3">
-            {mentionedCount < 3 && (
-              <div className="flex gap-3 text-sm text-white/50">
-                <span className="text-violet-400 mt-0.5">→</span>
-                <p>Build third-party editorial coverage (reviews, listicles, comparison articles) — AIs are trained on these more than brand-owned content.</p>
-              </div>
-            )}
-            <div className="flex gap-3 text-sm text-white/50">
-              <span className="text-violet-400 mt-0.5">→</span>
-              <p>Add specific attribute language to your product pages: include stats, use-case specifics, and trust signals that AIs can extract.</p>
-            </div>
-            {report.overallScore < 60 && (
-              <div className="flex gap-3 text-sm text-white/50">
-                <span className="text-violet-400 mt-0.5">→</span>
-                <p>Run this diagnostic weekly as you publish new content — AEO is a long-term signal, not a quick fix.</p>
-              </div>
-            )}
+        </h1>
+
+        {/* Lede */}
+        <p className="font-serif fade-up delay-200" style={{ fontSize: 21, lineHeight: 1.55, color: "var(--ink-2)", fontWeight: 400, marginBottom: 48 }}>
+          {report.lede}
+        </p>
+
+        {/* Comparison strip — three columns of pure data */}
+        <section className="rule pt-10 pb-10 mb-12 border-b" style={{ borderColor: "var(--rule)" }}>
+          <div className="grid grid-cols-3 gap-6">
+            {report.results.map((r, i) => (
+              <ModelColumn key={r.modelKey} result={r} index={i} />
+            ))}
           </div>
-        </div>
-        <p className="text-center text-white/15 text-xs mt-8">Analyzed at {new Date(report.timestamp).toLocaleString()} · Powered by local Ollama models</p>
-      </div>
+        </section>
+
+        {/* Body — pull quote + side observations */}
+        {firstQuote && firstQuote.mentionContext && (
+          <section className="mb-12 fade-up delay-500">
+            <p className="label mb-4">What {firstQuote.modelLabel} said</p>
+            <PullQuote text={firstQuote.mentionContext} brand={report.brand} />
+          </section>
+        )}
+
+        {/* Body paragraph — meta */}
+        <section className="mb-16 fade-up delay-600">
+          <p className="font-serif" style={{ fontSize: 19, lineHeight: 1.65, color: "var(--ink-2)", fontWeight: 400 }}>
+            {report.summary}
+          </p>
+        </section>
+
+        {/* Per-engine deep dive — collapsible */}
+        <section className="mb-16 fade-up delay-700">
+          <p className="label mb-6">Engine notes</p>
+          <div className="space-y-0">
+            {report.results.map(r => (
+              <div key={r.modelKey} className="border-t" style={{ borderColor: "var(--rule)" }}>
+                <button
+                  onClick={() => setExpandedModel(expandedModel === r.modelKey ? null : r.modelKey)}
+                  className="w-full flex items-center justify-between py-5 text-left"
+                >
+                  <div className="flex items-center gap-4">
+                    <span className="font-mono text-[11px] tabular" style={{ color: "var(--ink-3)" }}>0{report.results.indexOf(r) + 1}</span>
+                    <span className="font-serif" style={{ fontSize: 17, color: "var(--ink)" }}>{r.modelLabel}</span>
+                    <span className="font-serif italic text-sm" style={{ color: r.mentioned ? "var(--ink-2)" : "var(--accent)" }}>
+                      {r.mentioned ? `Score ${r.score}` : "Absent"}
+                    </span>
+                  </div>
+                  <span className="font-mono text-xs" style={{ color: "var(--ink-3)" }}>
+                    {expandedModel === r.modelKey ? "—" : "+"}
+                  </span>
+                </button>
+                {expandedModel === r.modelKey && (
+                  <div className="pb-6 pl-10 fade-in">
+                    {r.competitors.length > 0 && (
+                      <div className="mb-4">
+                        <p className="label mb-2">Brands {r.modelLabel} mentioned</p>
+                        <p className="font-serif" style={{ fontSize: 16, color: "var(--ink-2)" }}>
+                          {r.competitors.join(" · ")}
+                        </p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="label mb-2">Full response</p>
+                      <p className="font-serif" style={{ fontSize: 15, lineHeight: 1.6, color: "var(--ink-2)", whiteSpace: "pre-wrap" }}>
+                        {r.rawResponse || "(no response)"}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+            <div className="border-t" style={{ borderColor: "var(--rule)" }} />
+          </div>
+        </section>
+
+        {/* Footer methodology */}
+        <section className="border-t pt-6 flex items-center justify-between fade-in delay-700" style={{ borderColor: "var(--rule)" }}>
+          <p className="font-mono text-[10px] tracking-[0.15em] uppercase" style={{ color: "var(--ink-3)" }}>
+            3 models · identical prompt · temperature 0.7
+          </p>
+          <p className="font-mono text-[10px] tracking-[0.15em] uppercase" style={{ color: "var(--ink-3)" }}>
+            Score: <span style={{ color: "var(--ink)" }}>{mentionedCount}/3 mentions</span> · <span style={{ color: "var(--accent)" }}>{report.overallScore}/100</span>
+          </p>
+        </section>
+      </article>
     </main>
   );
 }
