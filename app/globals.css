@@ -1,227 +1,76 @@
-@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap");
 @import "tailwindcss";
+
+@theme {
+  --color-bg: #0B0D10;
+  --color-surface: #13161B;
+  --color-elevated: #1A1E25;
+  --color-signal: #00D982;
+  --color-signal-dim: #00C075;
+  --color-warn: #FFB547;
+  --color-danger: #FF5C5C;
+  --color-muted: #6B7280;
+}
+
+/* Override Tailwind's font stacks with next/font variables */
+:root {
+  --font-sans: var(--font-inter, 'Inter', system-ui, sans-serif);
+  --font-mono: var(--font-jbmono, 'JetBrains Mono', ui-monospace, monospace);
+}
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-:root {
-  --paper: #FAF7F2;
-  --paper-2: #F2EDE3;
-  --ink: #1A1A1A;
-  --ink-2: #4A4A4A;
-  --ink-3: #8A8A8A;
-  --rule: #E5DFD2;
-  --accent: #B8434E;
-  --accent-soft: #FFF1F2;
-  --positive: #1a7a4a;
-  --warning: #a87900;
-  --shadow: 0 1px 2px rgba(26,26,26,0.04), 0 4px 16px rgba(26,26,26,0.04);
-  --shadow-lg: 0 2px 4px rgba(26,26,26,0.04), 0 12px 40px rgba(26,26,26,0.08);
-  --ease: cubic-bezier(0.32, 0.72, 0, 1);
-}
-
 html, body {
-  background: var(--paper);
-  color: var(--ink);
-  font-family: "Inter", -apple-system, system-ui, sans-serif;
-  font-feature-settings: "ss01", "cv11";
+  background: #0B0D10;
+  color: rgba(255,255,255,0.85);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
 body { min-height: 100vh; }
 
-/* paper grain — subtle, professional */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/></filter><rect width='200' height='200' filter='url(%23n)' opacity='0.025'/></svg>");
-  z-index: 999;
-  opacity: 0.6;
+*:focus-visible {
+  outline: 2px solid #00D982;
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
-.font-serif { font-family: "Fraunces", Georgia, serif; font-feature-settings: "ss01", "ss02"; }
-.font-sans { font-family: "Inter", system-ui, sans-serif; }
-.font-mono { font-family: "JetBrains Mono", ui-monospace, monospace; font-feature-settings: "ss01", "ss02", "zero"; }
-
-/* selection */
-::selection { background: var(--accent); color: var(--paper); }
-
-/* scrollbar */
-::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: var(--ink-3); }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
 
-/* === CORE ELEMENTS === */
+::selection { background: rgba(0,217,130,0.25); color: #fff; }
 
-.kicker {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--accent);
-}
-
-.label {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-}
-
-.rule { border-top: 1px solid var(--rule); }
-.rule-strong { border-top: 1px solid var(--ink); }
-
-/* === INPUT — Linear/Superhuman grade === */
-
-.field {
-  position: relative;
-  display: block;
-}
-
-.field input {
-  width: 100%;
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid var(--rule);
-  padding: 12px 0 12px 0;
-  font-family: "Fraunces", Georgia, serif;
-  font-size: 24px;
-  font-weight: 400;
-  color: var(--ink);
-  outline: none;
-  transition: border-color 200ms var(--ease);
-  letter-spacing: -0.01em;
-}
-
-.field input::placeholder {
-  color: var(--ink-3);
-  font-style: italic;
-  font-weight: 300;
-}
-
-.field input:focus { border-bottom-color: var(--ink); }
-
-.field-label {
-  display: block;
-  font-family: "JetBrains Mono", monospace;
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-  margin-bottom: 8px;
-  transition: color 200ms var(--ease);
-}
-
-.field:focus-within .field-label { color: var(--accent); }
-
-/* === BUTTONS === */
-
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  background: var(--ink);
-  color: var(--paper);
-  font-family: "Inter", sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: -0.005em;
-  padding: 14px 24px;
-  border: none;
-  border-radius: 999px;
-  cursor: pointer;
-  transition: all 180ms var(--ease);
-  box-shadow: var(--shadow);
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: var(--accent);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-lg);
-}
-
-.btn-primary:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: var(--shadow);
-}
-
-.btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
-
-.btn-ghost {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: transparent;
-  color: var(--ink-2);
-  font-family: "Inter", sans-serif;
-  font-size: 13px;
-  font-weight: 500;
-  padding: 8px 0;
-  border: none;
-  cursor: pointer;
-  transition: color 180ms var(--ease);
-}
-
-.btn-ghost:hover { color: var(--accent); }
-
-/* keyboard hint */
-.kbd {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 5px;
-  background: rgba(250,247,242,0.15);
-  border: 1px solid rgba(250,247,242,0.25);
-  border-radius: 4px;
-  font-family: "JetBrains Mono", monospace;
-  font-size: 11px;
-  color: var(--paper);
-  line-height: 1;
-}
-
-/* === EXAMPLE PILL === */
-.example {
-  text-align: left;
-  padding: 14px 16px;
-  background: transparent;
-  border: 1px solid var(--rule);
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 180ms var(--ease);
-  display: block;
-  width: 100%;
-}
-
-.example:hover {
-  background: rgba(184,67,78,0.04);
-  border-color: var(--accent);
-  transform: translateY(-1px);
-}
+input::placeholder { color: rgba(255,255,255,0.25); }
+input:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* === ANIMATIONS === */
 
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(12px); }
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@keyframes scanline {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(400%); }
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+@keyframes progress-bar {
+  from { width: 0%; }
+  to { width: 100%; }
 }
 
-.fade-up { animation: fadeUp 600ms var(--ease) both; }
-.fade-in { animation: fadeIn 800ms var(--ease) both; }
+.pulse { animation: pulse-dot 2s ease-in-out infinite; }
+.scanline { animation: scanline 1.4s linear infinite; }
+.progress-bar { animation: progress-bar 3s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+.fade-up { animation: fade-up 400ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 
 .delay-100 { animation-delay: 100ms; }
 .delay-200 { animation-delay: 200ms; }
@@ -230,29 +79,3 @@ body::before {
 .delay-500 { animation-delay: 500ms; }
 .delay-600 { animation-delay: 600ms; }
 .delay-700 { animation-delay: 700ms; }
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-.pulse { animation: pulse 1.4s var(--ease) infinite; }
-
-/* score number — tabular */
-.tabular { font-variant-numeric: tabular-nums; }
-
-/* link styling — editorial */
-.link {
-  color: var(--ink);
-  text-decoration: underline;
-  text-decoration-color: var(--rule);
-  text-underline-offset: 4px;
-  transition: text-decoration-color 180ms var(--ease);
-}
-.link:hover { text-decoration-color: var(--accent); }
-
-/* highlight — for inline brand mentions in pull quotes */
-.highlight {
-  background: linear-gradient(180deg, transparent 60%, rgba(255,228,143,0.55) 60%);
-  font-weight: 500;
-  font-style: normal;
-}
