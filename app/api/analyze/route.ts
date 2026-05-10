@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ollamaClient, MODELS, ModelKey } from "@/lib/ollama";
 import { analyzeResponse, buildReport } from "@/lib/analyzer";
+import { runCoach } from "@/lib/coach";
 
 const SYSTEM_PROMPT = `You are a helpful shopping assistant. When asked about products, give genuine, specific recommendations based on quality, popularity, and effectiveness. Be direct and mention specific brand names. Keep your response to 150-200 words.`;
 
@@ -12,7 +13,7 @@ async function queryModel(modelId: string, query: string): Promise<string> {
       { role: "user", content: query },
     ],
     temperature: 0.7,
-    max_tokens: 300,
+    max_tokens: 200,
   });
   return response.choices[0]?.message?.content || "";
 }
@@ -38,9 +39,12 @@ export async function POST(req: NextRequest) {
       }
     });
     const report = buildReport(query, brand, results);
+    const coachReport = await runCoach(query, brand, results);
+    if (coachReport) report.coachReport = coachReport;
     return NextResponse.json(report);
   } catch (err) {
     console.error("Analyze error:", err);
     return NextResponse.json({ error: "Failed to connect to Ollama. Is it running on port 11434?" }, { status: 500 });
   }
 }
+

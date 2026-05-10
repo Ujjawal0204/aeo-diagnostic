@@ -13,15 +13,15 @@ export const MODELS = {
     color: "#3B82F6",
   },
   gemma: {
-    id: "gemma3",
+    id: "gemma3:1b",
     label: "Gemma 3",
     company: "Google",
     color: "#10B981",
   },
-  mistral: {
-    id: "mistral",
-    label: "Mistral",
-    company: "Mistral AI",
+  qwen: {
+    id: "qwen2.5:1.5b",
+    label: "Qwen 2.5",
+    company: "Alibaba",
     color: "#F59E0B",
   },
 } as const;

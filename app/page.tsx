@@ -16,6 +16,7 @@ const LOADING_STATES = [
   "Querying Mistral",
   "Reading the responses",
   "Composing the report",
+  "Consulting AEO Coach",
 ];
 
 export default function Home() {

@@ -1,3 +1,17 @@
+export interface CoachAction {
+  priority: 1 | 2 | 3;
+  tactic: string;
+  finding: string;
+  action: string;
+  expectedLift: string;
+}
+
+export interface CoachReport {
+  domain: string;
+  rationale: string;
+  actions: CoachAction[];
+}
+
 export interface AnalysisResult {
   modelKey: string;
   modelLabel: string;
@@ -9,6 +23,7 @@ export interface AnalysisResult {
   mentionContext: string | null;
   competitors: string[];
   sentiment: "positive" | "neutral" | "negative" | "not_mentioned";
+  pawcRaw: number;
   score: number;
   positionLabel: "top" | "middle" | "bottom" | "not_mentioned";
 }
@@ -23,6 +38,7 @@ export interface DiagnosticReport {
   summary: string;
   headline: string;
   lede: string;
+  coachReport?: CoachReport;
 }
 
 function extractSentenceWithBrand(text: string, brand: string): string | null {
@@ -72,19 +88,39 @@ function getPositionLabel(position: number | null, totalWords: number): "top" | 
   return "bottom";
 }
 
-function computeScore(mentioned: boolean, positionLabel: string, sentiment: string): number {
-  if (!mentioned) return 0;
-  let score = 40;
-  if (positionLabel === "top") score += 35;
-  else if (positionLabel === "middle") score += 20;
-  else if (positionLabel === "bottom") score += 10;
-  if (sentiment === "positive") score += 25;
-  else if (sentiment === "neutral") score += 10;
-  else if (sentiment === "negative") score -= 10;
-  return Math.max(0, Math.min(100, score));
+// PAWC: Position-Adjusted Word Count from Aggarwal et al., KDD 2024 (arxiv 2311.09735).
+// Imp_pwc = Σ (sentence_word_count / sentence_position) for each sentence mentioning the brand.
+// Sentences at the top carry exponentially more weight, mirroring power-law CTR in search.
+function computePAWC(text: string, brand: string): number {
+  const sentences = text.match(/[^.!?]+[.!?]+/g) || [];
+  const brandLower = brand.toLowerCase();
+  let raw = 0;
+  sentences.forEach((s, idx) => {
+    if (s.toLowerCase().includes(brandLower)) {
+      const wordCount = s.trim().split(/\s+/).length;
+      raw += wordCount / (idx + 1);
+    }
+  });
+  return Math.round(raw * 10) / 10;
 }
 
-export function analyzeResponse(rawResponse: string, brand: string, modelKey: string, modelLabel: string, company: string, color: string): AnalysisResult {
+function computeScore(pawcRaw: number, mentioned: boolean, sentiment: string): number {
+  if (!mentioned) return 0;
+  // Normalize: a 25-word brand mention at sentence 1 = max single contribution → 100
+  const base = Math.min(Math.round((pawcRaw / 25) * 100), 100);
+  if (sentiment === "positive") return Math.min(100, base + 10);
+  if (sentiment === "negative") return Math.max(0, base - 10);
+  return base;
+}
+
+export function analyzeResponse(
+  rawResponse: string,
+  brand: string,
+  modelKey: string,
+  modelLabel: string,
+  company: string,
+  color: string
+): AnalysisResult {
   const totalWords = rawResponse.split(/\s+/).length;
   const mentioned = rawResponse.toLowerCase().includes(brand.toLowerCase());
   const mentionPosition = getMentionPosition(rawResponse, brand);
@@ -92,8 +128,9 @@ export function analyzeResponse(rawResponse: string, brand: string, modelKey: st
   const sentiment = detectSentiment(rawResponse, brand);
   const mentionContext = extractSentenceWithBrand(rawResponse, brand);
   const competitors = extractCompetitors(rawResponse, brand);
-  const score = computeScore(mentioned, positionLabel, sentiment);
-  return { modelKey, modelLabel, company, color, rawResponse, mentioned, mentionPosition, mentionContext, competitors, sentiment, score, positionLabel };
+  const pawcRaw = computePAWC(rawResponse, brand);
+  const score = computeScore(pawcRaw, mentioned, sentiment);
+  return { modelKey, modelLabel, company, color, rawResponse, mentioned, mentionPosition, mentionContext, competitors, sentiment, pawcRaw, score, positionLabel };
 }
 
 function generateHeadline(brand: string, results: AnalysisResult[]): string {
@@ -104,9 +141,7 @@ function generateHeadline(brand: string, results: AnalysisResult[]): string {
     const top = results.reduce((a, b) => a.score > b.score ? a : b);
     return `${brand} is seen — but ${top.modelLabel} sees it best.`;
   }
-  if (mentioned.length === 2) {
-    return `Two engines remember ${brand}. ${absent[0].modelLabel} forgot.`;
-  }
+  if (mentioned.length === 2) return `Two engines remember ${brand}. ${absent[0].modelLabel} forgot.`;
   return `Only ${mentioned[0].modelLabel} remembers ${brand}.`;
 }
 
@@ -114,7 +149,6 @@ function generateLede(brand: string, query: string, results: AnalysisResult[]): 
   const mentioned = results.filter(r => r.mentioned);
   const absent = results.filter(r => !r.mentioned);
   const queryClean = query.replace(/^best\s+/i, "the best ").replace(/\?$/, "");
-
   if (mentioned.length === 0) {
     return `Asked for ${queryClean}, three of today's most-used AI systems answered with confidence — and none mentioned ${brand}. The brand's absence, across models trained by three different companies, suggests a gap not in product, but in narrative.`;
   }
@@ -139,6 +173,5 @@ export function buildReport(query: string, brand: string, results: AnalysisResul
 
   const headline = generateHeadline(brand, results);
   const lede = generateLede(brand, query, results);
-
   return { query, brand, timestamp: new Date().toISOString(), results, overallScore, topEngine, summary, headline, lede };
 }
