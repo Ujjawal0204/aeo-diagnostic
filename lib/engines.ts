@@ -140,3 +140,28 @@ const LOCAL_ENGINES: EngineConfig[] = [
 export const ENGINES: EngineConfig[] = MODE === "local" ? LOCAL_ENGINES : CLOUD_ENGINES;
 export const ENGINE_MODE = MODE;
 export { SYSTEM_PROMPT };
+
+// Dedicated coach query — low temperature for consistent JSON output.
+// Cloud: Claude Haiku (reliable instruction following). Local: Mistral via Ollama.
+export async function coachQuery(systemPrompt: string, userPrompt: string): Promise<string> {
+  if (MODE === "local") {
+    const r = await ollama.chat.completions.create({
+      model: "mistral",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      temperature: 0.3,
+      max_tokens: 800,
+    });
+    return r.choices[0]?.message?.content || "";
+  }
+  const r = await getAnthropic().messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 800,
+    system: systemPrompt,
+    messages: [{ role: "user", content: userPrompt }],
+  });
+  const block = r.content[0];
+  return block.type === "text" ? block.text : "";
+}

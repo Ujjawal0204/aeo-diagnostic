@@ -39,6 +39,7 @@ export interface DiagnosticReport {
   headline: string;
   lede: string;
   coachReport?: CoachReport;
+  mode?: string;
 }
 
 function extractSentenceWithBrand(text: string, brand: string): string | null {

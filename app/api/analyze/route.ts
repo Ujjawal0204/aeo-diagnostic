@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ENGINES, SYSTEM_PROMPT, ENGINE_MODE } from "@/lib/engines";
 import { analyzeResponse, buildReport } from "@/lib/analyzer";
+import { runCoach } from "@/lib/coach";
 
 export const maxDuration = 60;
 
@@ -28,8 +29,10 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    const report = { ...buildReport(query, brand, results), mode: ENGINE_MODE };
-    return NextResponse.json(report);
+    const report = buildReport(query, brand, results);
+    const coachReport = await runCoach(query, brand, results);
+    if (coachReport) report.coachReport = coachReport;
+    return NextResponse.json({ ...report, mode: ENGINE_MODE });
   } catch (err) {
     console.error("Analyze error:", err);
     const msg = ENGINE_MODE === "local"

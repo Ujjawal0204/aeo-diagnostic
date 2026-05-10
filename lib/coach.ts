@@ -1,4 +1,4 @@
-import { ollamaClient } from "./ollama";
+import { coachQuery } from "./engines";
 import { AnalysisResult, CoachReport } from "./analyzer";
 
 export async function runCoach(
@@ -52,21 +52,10 @@ Return ONLY valid JSON, no prose, no markdown fences:
 }`;
 
   try {
-    const response = await ollamaClient.chat.completions.create({
-      model: "mistral",
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are an AEO (Answer Engine Optimization) coach. Prescribe concrete fixes based on GEO research. Respond ONLY with valid JSON — no prose, no markdown code fences.",
-        },
-        { role: "user", content: userPrompt },
-      ],
-      temperature: 0.3,
-      max_tokens: 800,
-    });
-
-    const raw = response.choices[0]?.message?.content || "";
+    const raw = await coachQuery(
+      "You are an AEO (Answer Engine Optimization) coach. Prescribe concrete fixes based on GEO research. Respond ONLY with valid JSON — no prose, no markdown code fences.",
+      userPrompt
+    );
     const json = raw
       .replace(/^```(?:json)?\n?/, "")
       .replace(/\n?```$/, "")
