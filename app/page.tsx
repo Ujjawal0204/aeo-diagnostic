@@ -167,9 +167,10 @@ export default function Home() {
       <footer className="mt-auto border-t" style={{ borderColor: "var(--rule)" }}>
         <div className="max-w-[720px] mx-auto px-6 py-6 flex items-center justify-between font-mono text-[10px] tracking-[0.15em] uppercase" style={{ color: "var(--ink-3)" }}>
           <span>An independent instrument</span>
-          <span>3 local models · No cloud · No tracking</span>
+          <span>3 AI engines · GPT-4o · Claude · Gemini</span>
         </div>
       </footer>
     </main>
   );
 }
+

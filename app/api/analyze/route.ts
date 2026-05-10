@@ -1,22 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ollamaClient, MODELS, ModelKey } from "@/lib/ollama";
+import { ENGINES, SYSTEM_PROMPT, ENGINE_MODE } from "@/lib/engines";
 import { analyzeResponse, buildReport } from "@/lib/analyzer";
-import { runCoach } from "@/lib/coach";
 
-const SYSTEM_PROMPT = `You are a helpful shopping assistant. When asked about products, give genuine, specific recommendations based on quality, popularity, and effectiveness. Be direct and mention specific brand names. Keep your response to 150-200 words.`;
-
-async function queryModel(modelId: string, query: string): Promise<string> {
-  const response = await ollamaClient.chat.completions.create({
-    model: modelId,
-    messages: [
-      { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: query },
-    ],
-    temperature: 0.7,
-    max_tokens: 200,
-  });
-  return response.choices[0]?.message?.content || "";
-}
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,27 +10,31 @@ export async function POST(req: NextRequest) {
     if (!query || !brand) {
       return NextResponse.json({ error: "query and brand are required" }, { status: 400 });
     }
-    const modelEntries = Object.entries(MODELS) as [ModelKey, (typeof MODELS)[ModelKey]][];
+
+    // Fire all engines in parallel
     const responses = await Promise.allSettled(
-      modelEntries.map(([key, model]) =>
-        queryModel(model.id, query).then((text) => ({ key, model, text }))
+      ENGINES.map((engine) =>
+        engine.query(SYSTEM_PROMPT, query).then((text) => ({ engine, text }))
       )
     );
+
     const results = responses.map((res, i) => {
-      const [key, model] = modelEntries[i];
+      const engine = ENGINES[i];
       if (res.status === "fulfilled") {
-        return analyzeResponse(res.value.text, brand, key, model.label, model.company, model.color);
+        return analyzeResponse(res.value.text, brand, engine.key, engine.label, engine.company, engine.color);
       } else {
-        return analyzeResponse("", brand, key, model.label, model.company, model.color);
+        console.error(`${engine.label} failed:`, res.reason);
+        return analyzeResponse("", brand, engine.key, engine.label, engine.company, engine.color);
       }
     });
-    const report = buildReport(query, brand, results);
-    const coachReport = await runCoach(query, brand, results);
-    if (coachReport) report.coachReport = coachReport;
+
+    const report = { ...buildReport(query, brand, results), mode: ENGINE_MODE };
     return NextResponse.json(report);
   } catch (err) {
     console.error("Analyze error:", err);
-    return NextResponse.json({ error: "Failed to connect to Ollama. Is it running on port 11434?" }, { status: 500 });
+    const msg = ENGINE_MODE === "local"
+      ? "Failed to connect to Ollama. Is it running on port 11434?"
+      : "Failed to query cloud APIs. Check your API keys in .env.local.";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
-
