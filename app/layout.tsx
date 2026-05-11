@@ -17,7 +17,8 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "AEO Diagnostic — How does AI see your brand?",
-  description: "Find out whether your brand gets mentioned when shoppers ask AI for recommendations. Three engines, one minute.",
+  description:
+    "Find out whether your brand gets mentioned when ChatGPT, Claude, or Gemini answers shopping questions. Three frontier models, one minute.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

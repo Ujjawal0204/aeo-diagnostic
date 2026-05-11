@@ -1,49 +1,43 @@
+import { Waveform } from "./Waveform";
+
 export function BrandMark() {
   return (
-    <div className="flex items-center gap-2.5">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-        <polyline
-          points="1,10 4,10 6,4 8,16 10,7 12,13 14,10 19,10"
-          stroke="#00D982"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-        />
-      </svg>
-      <span
-        style={{
-          fontFamily: "var(--font-jbmono, 'JetBrains Mono', monospace)",
-          fontSize: 14,
-          fontWeight: 500,
-          letterSpacing: "-0.01em",
-          color: "rgba(255,255,255,0.9)",
-        }}
-      >
-        aeo
-      </span>
-      <span style={{ color: "rgba(255,255,255,0.2)", fontFamily: "var(--font-jbmono, monospace)", fontSize: 12 }}>·</span>
-      <span
-        style={{
-          fontFamily: "var(--font-jbmono, 'JetBrains Mono', monospace)",
-          fontSize: 14,
-          fontWeight: 400,
-          letterSpacing: "-0.01em",
-          color: "rgba(255,255,255,0.4)",
-        }}
-      >
-        diagnostic
-      </span>
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <Waveform size={16} />
+      <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+        <span
+          style={{
+            fontFamily: "var(--font-jbmono, 'JetBrains Mono', monospace)",
+            fontSize: 16,
+            fontWeight: 500,
+            letterSpacing: "-0.01em",
+            color: "rgba(255,255,255,0.95)",
+          }}
+        >
+          aeo
+        </span>
+        <span style={{ color: "rgba(255,255,255,0.22)", fontSize: 13, lineHeight: 1 }}>·</span>
+        <span
+          style={{
+            fontSize: 14,
+            fontWeight: 400,
+            color: "rgba(255,255,255,0.52)",
+            letterSpacing: "0.01em",
+          }}
+        >
+          diagnostic
+        </span>
+      </div>
       <span
         style={{
           fontFamily: "var(--font-jbmono, 'JetBrains Mono', monospace)",
           fontSize: 10,
-          letterSpacing: "0.06em",
-          padding: "2px 7px",
+          letterSpacing: "0.08em",
+          padding: "2px 8px",
           borderRadius: 999,
           border: "1px solid rgba(0,217,130,0.3)",
           color: "#00D982",
-          marginLeft: 4,
+          lineHeight: 1.6,
         }}
       >
         BETA

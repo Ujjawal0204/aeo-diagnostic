@@ -1,11 +1,11 @@
-import { CSSProperties } from "react";
+import { CSSProperties, ElementType, ReactNode } from "react";
 
 interface MonoLabelProps {
-  children: React.ReactNode;
+  children: ReactNode;
   accent?: boolean;
   className?: string;
   style?: CSSProperties;
-  as?: "span" | "p" | "div";
+  as?: ElementType;
 }
 
 export function MonoLabel({ children, accent, className, style, as: Tag = "span" }: MonoLabelProps) {

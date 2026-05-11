@@ -10,31 +10,31 @@ interface ScoreRingProps {
   animated?: boolean;
 }
 
-function getColor(score: number): string {
+export function getScoreColor(score: number): string {
   if (score >= 60) return "#00D982";
-  if (score >= 30) return "#FFB547";
-  if (score > 0) return "#FF5C5C";
+  if (score >= 40) return "#FFB547";
+  if (score >= 20) return "#FF5C5C";
   return "#6B7280";
 }
 
-function getLabel(score: number): string {
+export function getScoreLabel(score: number): string {
   if (score >= 80) return "DOMINANT";
   if (score >= 60) return "VISIBLE";
-  if (score >= 30) return "PARTIAL";
-  if (score > 0) return "WEAK";
+  if (score >= 40) return "PARTIAL";
+  if (score >= 20) return "WEAK";
   return "INVISIBLE";
 }
 
-const SIZE_CONFIG: Record<RingSize, { stroke: number; scoreFontSize: number; labelFontSize: number; showLabel: boolean }> = {
-  60:  { stroke: 5,  scoreFontSize: 18, labelFontSize: 0,  showLabel: false },
-  100: { stroke: 7,  scoreFontSize: 30, labelFontSize: 10, showLabel: false },
-  180: { stroke: 10, scoreFontSize: 52, labelFontSize: 13, showLabel: true  },
+const SIZE_CONFIG: Record<RingSize, { stroke: number; scoreFontSize: number; showLabel: boolean }> = {
+  60:  { stroke: 5,  scoreFontSize: 18, showLabel: false },
+  100: { stroke: 7,  scoreFontSize: 30, showLabel: false },
+  180: { stroke: 10, scoreFontSize: 52, showLabel: true  },
 };
 
 export function ScoreRing({ score, size = 100, animated = true }: ScoreRingProps) {
   const [displayed, setDisplayed] = useState(animated ? 0 : score);
-  const color = getColor(score);
-  const { stroke, scoreFontSize, labelFontSize, showLabel } = SIZE_CONFIG[size];
+  const color = getScoreColor(score);
+  const { stroke, scoreFontSize, showLabel } = SIZE_CONFIG[size];
   const center = size / 2;
   const radius = center - stroke / 2 - 2;
   const circumference = 2 * Math.PI * radius;
@@ -61,8 +61,11 @@ export function ScoreRing({ score, size = 100, animated = true }: ScoreRingProps
         viewBox={`0 0 ${size} ${size}`}
         style={{ transform: "rotate(-90deg)" }}
         aria-label={`Score: ${score} out of 100`}
+        role="img"
       >
+        {/* Track */}
         <circle cx={center} cy={center} r={radius} stroke="rgba(255,255,255,0.06)" strokeWidth={stroke} fill="none" />
+        {/* Progress arc */}
         <circle
           cx={center} cy={center} r={radius}
           stroke={color}
@@ -74,6 +77,7 @@ export function ScoreRing({ score, size = 100, animated = true }: ScoreRingProps
           style={{ transition: animated ? "stroke-dashoffset 50ms linear" : "none" }}
         />
       </svg>
+      {/* Center content */}
       <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
         <span style={{
           fontFamily: "var(--font-jbmono, 'JetBrains Mono', monospace)",
@@ -85,27 +89,25 @@ export function ScoreRing({ score, size = 100, animated = true }: ScoreRingProps
         }}>
           {displayed}
         </span>
-        {size >= 100 && (
-          <span style={{
-            fontFamily: "var(--font-jbmono, 'JetBrains Mono', monospace)",
-            fontSize: 11,
-            color: "rgba(255,255,255,0.3)",
-            marginTop: 3,
-          }}>
-            /100
-          </span>
-        )}
+        <span style={{
+          fontFamily: "var(--font-jbmono, 'JetBrains Mono', monospace)",
+          fontSize: size >= 180 ? 13 : 10,
+          color: "rgba(255,255,255,0.3)",
+          marginTop: 4,
+        }}>
+          /100
+        </span>
         {showLabel && (
           <span style={{
             fontFamily: "var(--font-jbmono, 'JetBrains Mono', monospace)",
-            fontSize: labelFontSize,
+            fontSize: 12,
             fontWeight: 500,
             letterSpacing: "0.1em",
             textTransform: "uppercase",
             color,
-            marginTop: 8,
+            marginTop: 10,
           }}>
-            {getLabel(score)}
+            {getScoreLabel(score)}
           </span>
         )}
       </div>
