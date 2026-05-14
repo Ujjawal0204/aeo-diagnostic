@@ -1,17 +1,26 @@
-import { ReactNode } from "react";
+import { ReactNode, CSSProperties } from "react";
 
 interface ContainerProps {
   children: ReactNode;
   className?: string;
+  style?: CSSProperties;
 }
 
-/**
- * Every page section lives inside this container.
- * This guarantees centered, max-w-[1200px] layout on all screen sizes.
- */
-export function Container({ children, className }: ContainerProps) {
+export function Container({ children, className, style }: ContainerProps) {
   return (
-    <div className={`mx-auto w-full max-w-[1200px] px-8 lg:px-12 ${className ?? ""}`}>
+    <div
+      style={{
+        marginLeft: "auto",
+        marginRight: "auto",
+        maxWidth: 1200,
+        paddingLeft: "clamp(32px, 5vw, 48px)",
+        paddingRight: "clamp(32px, 5vw, 48px)",
+        width: "100%",
+        boxSizing: "border-box",
+        ...style,
+      }}
+      className={className ?? ""}
+    >
       {children}
     </div>
   );
